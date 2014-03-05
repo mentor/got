@@ -1,0 +1,428 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Game of Thrones - The Board Game</title>
+	<script type="text/javascript" src="js/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+            background-color: #4c553e;
+
+        }        
+        #game-viewport {
+          display: table;
+          margin:0 auto;
+          border: 2px solid #6f744f;
+          border-radius: 2px;
+        }
+
+        .ac { text-align: center}
+        h1 {
+          color: khaki;
+        }
+    </style>
+</head>
+<body>
+<header>
+  <h1 class="ac">Game of Thrones - The Board Game</h1>
+</header>
+
+<div id="game-viewport-outer">
+  <div id="game-viewport"></div>
+</div>
+
+<script type="text/javascript">
+/*
+var getWindowSize = (function() {
+  var docEl = document.documentElement,
+      IS_BODY_ACTING_ROOT = docEl && docEl.clientHeight === 0;
+
+  // Used to feature test Opera returning wrong values 
+  // for documentElement.clientHeight. 
+  function isDocumentElementHeightOff () { 
+      var d = document,
+          div = d.createElement('div');
+      div.style.height = "2500px";
+      d.body.insertBefore(div, d.body.firstChild);
+      var r = d.documentElement.clientHeight > 2400;
+      d.body.removeChild(div);
+      return r;
+  }
+
+  if (typeof document.clientWidth == "number") {
+     return function () {
+       return { width: document.clientWidth, height: document.clientHeight };
+     };
+  } else if (IS_BODY_ACTING_ROOT || isDocumentElementHeightOff()) {
+      var b = document.body;
+      return function () {
+        return { width: b.clientWidth, height: b.clientHeight };
+      };
+  } else {
+      return function () {
+        return { width: docEl.clientWidth, height: docEl.clientHeight };
+      };
+  }
+})();
+
+
+var client_width = getWindowSize().width;
+var client_height = getWindowSize().height;
+*/
+
+/* GAME API suggestion
+
+[ikony armady]
+http://boardgamegeek.com/images/thing/103343/a-game-of-thrones-the-board-game-second-edition
+
+
+send all game commands to server side with key(game_id, user_id) 
+SESSION.GAME_ID == DB.GAMES.ID,  SESSION.USER_ID == DB.GAMES_USERS.USER_ID
+
+try {
+  var game = GameClient.connect(server_ip, user_id, game_id);
+catch (GameClient.HTTPException $e) {
+   UIAlert('Connection error');
+   exit;
+}
+
+// static | cached
+[tides of battle]
+[power = 0..3 special: [none, skull, forfeit, sword]]
+
++0 | 8
++0 skull | 2
++1 sword | 4
++1 forfeit | 4
++2 | 4
++3 | 2
+
+[wildlings cards]
+[]
+
+
+game.getAreasData() {
+  areas: {
+    garrison  (0..3), 
+    castle (0/1), 
+    stronghold(0/1),
+    supply(0..2), 
+    consolidate(0..2),
+    powertoken: house_id | NULL
+    port_id|NULL}
+}
+
+//serverside
+
+game.getGameData
+
+// clientside dynamic | websockets
+
+game.getGameData(game_id) {
+  players: {user_id}, 
+  influence_track: {ironthrone: {user_id}, fiefdoms: {user_id}, kingscourt: {user_id}}
+  victory_track: {user_id, score}
+  supply_track: {user_id, score}
+  wildlings_track: {score, cards: {used,unused}}
+}
+
+game.getPlayerData(user_id) { 
+  house: [lanister, stark, ...]
+  housecards: {used, unused}, 
+  army: {
+    type(ship,footmen,knight,siege), 
+    area_id|NULL, 
+    defeated: bool
+  }, 
+  powertokens: {area_id(s)|NULL}   
+  active: bool;
+}
+
+getnotiifedPlayer(player_id)
+game.getPlayerAdjacentArea(area_id)
+
+game.setPlayerOrder(order_id, area_id)
+game.setPlayerHouseCard(housecard_id);
+game.setPlayerMove(army, area_id);
+game.setPlayerMuster(army, area_id);
+game.setPlayerRetreat(army, area_id);
+
+
+getArea(area_id)
+getDefaultAdjacentArea(area_id)
+
+ */
+var game = new Phaser.Game(1800,800, Phaser.AUTO, 'game-viewport', { preload: preload, create: create, update: update, render: render });
+
+
+var area_positions = [
+  [594,430,'Layer-21.png','A'],
+  [468,440,'Layer-22.png','B'],
+  [337,227,'Layer-23.png','C'],
+  [256,200,'Layer-24.png','D'],
+  [160,243,'Layer-25.png','E'],
+  [828,231,'Layer-16.png','F'],
+  [1101,56,'Layer-17.png','G'],
+  [461,225,'Layer-18.png','H'],
+  [556,223,'Layer-19.png','I'],
+  [630,341,'Layer-20.png','J'],
+  [919,291,'Layer-5.png','K'],
+  [959,188,'Layer-6.png','L'],
+  [1088,113,'Layer-7.png','M'],
+  [1081,387,'Layer-8.png','N'],
+  [1143,494,'Layer-9.png','O'],
+  [841,316,'Layer-10.png','P'],
+  [724,380,'Layer-11.png','Q'],
+  [733,500,'Layer-12.png','R'],
+  [875,435,'Layer-14.png','S'],
+  [700,246,'Layer-15.png','T'],
+  [273,503,'Layer-31.png','U'],
+  [349,440,'Layer-32.png','V'],
+  [594,74,'Layer-33.png','W'],
+  [430,100,'Layer-34.png','X'],
+  [309,96,'Layer-35.png','Y'],
+  [570,674,'Layer-41.png','Z'],
+  [12,6,'Layer-42.png','A2'],
+  [791,26,'Layer-43.png','A3'],
+  [183,72,'Layer-36.png','A4'],
+  [91,111,'Layer-37.png','A5'],
+  [981,61,'Layer-38.png','A6'],
+  [1324,492,'Layer-39.png','A7'],
+  [1324,306,'Layer-40.png','A8']
+];
+
+var map_base;
+var map_overlay;
+
+var sound;
+var btn_audio;
+
+var text;
+
+function preload() {
+    
+    //  This sets a limit on the up-scale
+    /*game.stage.scale.maxWidth = 1280;
+    game.stage.scale.maxHeight = 800;
+*/
+    //  Then we tell Phaser that we want it to scale up to whatever the browser can handle, but to do it proportionally
+   // game.stage.scaleMode = Phaser.StageScaleMode.SHOW_ALL;
+
+
+    // Stretch to fill
+//    game.stage.fullScreenScaleMode = Phaser.StageScaleMode.EXACT_FIT;
+    // Keep original size
+//    game.stage.fullScreenScaleMode = Phaser.StageScaleMode.NO_SCALE;
+    // Maintain aspect ratio
+    //game.stage.fullScreenScaleMode = Phaser.StageScaleMode.SHOW_ALL;
+
+//  Firefox doesn't support mp3 files, so use ogg
+    game.load.audio('sound', ['assets/audio/main_theme.mp3', 'assets/audio/main_theme.ogg']);
+
+    //game.load.image('background', 'assets/map_1280x800.png');
+    //game.load.image('background', 'assets/map_1600x800.png');
+    
+
+    game.load.atlas('atlas_map', 'assets/map.png', 'assets/map.json'); 
+    game.load.image('map_overlay', 'assets/map_overlay.png');
+    game.load.atlas('atlas_ui', 'assets/ui.png', 'assets/ui.json');
+
+    game.load.image('card', 'assets/mana_card.png');
+
+  /* game.load.spritesheet('dude', 'assets/dude.png', 32, 48);*/
+
+}
+
+function create() {    
+
+    // WORLD setup
+     
+    //  For browsers that support it, this keeps our pixel art looking crisp
+    // This only works when you use Phaser.CANVAS as the renderer    
+    //Phaser.Canvas.setSmoothingEnabled(game.context, false);
+
+
+    //game.world.setBounds(0, 0, 1600, 800);
+
+    // STAGE setup
+    game.stage.backgroundColor = '#4c553e';
+
+    // INPUT
+    //key1 = game.input.keyboard.addKey(Phaser.Keyboard.ONE);    
+    //key1.onDown.add(key1pressed, this);
+    
+    // and in update phase instead:
+    // game.input.keyboard.isDown(Phaser.Keyboard.ONE)
+    // use this:
+    // key1.isDown
+    
+    // AUDIO
+    sound = game.add.audio('sound',1,true);
+    ;
+    // start playing in loop    
+    sound.play('',0,1,true);
+    
+    // SPRITE SETUP
+    //game.add.sprite(0,0,'background');
+
+    // MAP
+    // land, sea, terrain    
+    map_base = game.add.group();
+    map_base.name = 'map_base';
+    // iterate over 
+    var index;
+    for (index = 0; index < area_positions.length; ++index) {
+      // create sprite, set frame
+      area = map_base.create(area_positions[index][0], area_positions[index][1], 'atlas_map');            
+      area.frameName = area_positions[index][2]; 
+      area.name = area_positions[index][3]; 
+      // enable clickable non-transparent pixels in region
+      area.inputEnabled=true;
+      area.input.pixelPerfect =true;
+      area.input.useHandCursor = true;  
+
+      // set callback 
+      area.events.onInputDown.add(onAreaClicked, this);         
+    }  
+    
+    
+    // MAP OVERLAY
+    // rivers, bridges, borders
+    map_overlay = game.add.sprite(0,0,'map_overlay');
+map_overlay.visible = false;
+    // AUDIO BUTTON
+    btn_audio = game.add.sprite(game.world.width - 64, 32, 'atlas_ui');    
+    btn_audio.frame = 1;
+    
+    // enable clickable non-transparent pixels in region
+    btn_audio.inputEnabled=true;    
+    btn_audio.input.pixelPerfect = false;        
+    btn_audio.input.useHandCursor = true;    
+    btn_audio.anchor.setTo(0.5, 0.5);
+    //btn_audio.alpha = 0;
+    // effects
+    
+    // set callback 
+    btn_audio.events.onInputDown.add(_clientToggleSound, this);
+    
+    // USER INTERFACE
+    // 
+    
+    /*str = "EXAMPLE TEXT";
+    var style = { font: "45px Tahoma", fill: "#ff0044", align: "center" };
+    text = game.add.text(game.world.centerX-300, 0, str, style);
+    text.visible = false;
+    */
+    card = game.add.sprite(200, 650, 'card');
+    //card.visible = false;
+
+    // INPUT
+
+    //game.camera.follow(card);
+    
+
+    //enables all kind of input actions on this image (click, etc)
+/*    area1.inputEnabled=true;
+ //  Check the pixel data of the sprite
+    area1.input.pixelPerfect = true;
+
+    //  Enable the hand cursor
+    area1.input.useHandCursor = true;
+
+    area1.events.onInputDown.add(onAreaClicked,this);
+*/
+ 
+ //   cursors = game.input.keyboard.createCursorKeys();
+
+
+    /*//  The platforms group contains the ground and the 2 ledges we can jump on
+    platforms = game.add.group();
+
+    // Here we create the ground.
+    var ground = platforms.create(0, game.world.height - 64, 'ground');
+
+    //  Scale it to fit the width of the game (the original sprite is 400x32 in size)
+    ground.scale.setTo(2, 2);
+
+    //  This stops it from falling away when you jump on it
+    ground.body.immovable = true;
+
+    //  Now let's create two ledges
+    var ledge = platforms.create(400, 400, 'ground');
+    ledge.body.immovable = true;
+
+    ledge = platforms.create(-150, 250, 'ground');
+    ledge.body.immovable = true;
+
+    // The player and its settings
+    player = game.add.sprite(32, game.world.height - 150, 'dude');
+
+    //  Player physics properties. Give the little guy a slight bounce.
+    player.body.bounce.y = 0.2;
+    player.body.gravity.y = 6;
+    player.body.collideWorldBounds = true;
+
+    //  Our two animations, walking left and right.
+    player.animations.add('left', [0, 1, 2, 3], 10, true);
+    player.animations.add('right', [5, 6, 7, 8], 10, true);
+    */
+
+}
+
+function onAreaClicked(id) {
+    alert('area: '+id.name);console.log(id);
+}
+
+
+function _clientToggleSound(id) {
+  if (sound.paused) {
+    btn_audio.frame = 1;
+    sound.resume();
+  } else {
+    btn_audio.frame = 0;
+    sound.pause();
+  }
+}
+
+
+function update() {
+
+   /* if (cursors.left.isDown)
+    {
+        game.camera.x -= 4;
+    }
+    else if (cursors.right.isDown)
+    {
+        game.camera.x += 4;
+    }
+
+    if (cursors.up.isDown)
+    {
+        game.camera.y -= 4;
+    }
+    else if (cursors.down.isDown)
+    {
+        game.camera.y += 4;
+    }
+*/
+ //text.setText('x: ' + Math.round(game.input.x) + ' y: ' + Math.round(game.input.y));
+
+}
+
+function render() {
+    
+    map_base.forEach(function(item){
+        game.debug.renderSpriteCorners(item, true, true);
+    });
+    
+    //game.debug.renderSpriteCoords(map_base.getAt(i), 32, 32);    
+    //game.debug.renderCameraInfo(game.camera, 500, 32);        
+    //game.debug.renderPhysicsBody(card.body);
+
+}
+
+</script>
+
+</body>
+</html>
